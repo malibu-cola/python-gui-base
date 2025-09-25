@@ -115,7 +115,7 @@ class MinimalApp:
         self.name_entry.delete(0, tk.END)
         self.name_entry.focus()
 
-def main():
+def gui_run():
     """メイン関数"""
     try:
         root = tk.Tk()
@@ -126,4 +126,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    gui_run()

@@ -1,10 +1,12 @@
+from loguru import logger
+
 
 def process_data():
-    print("Processing data...")
+    logger.info("Processing data...")
     return
 
 def process_data2():
-    print("Processing data 2...")
+    logger.info("Processing data 2...")
     return
 
 if __name__ == "__main__":

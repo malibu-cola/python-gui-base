@@ -4,10 +4,10 @@ version = "0.1.0"
 description = ""
 authors = [{ name = "Your Name", email = "you@example.com" }]
 readme = "README.md"
-dependencies = ["pyinstaller (>=6.16.0,<7.0.0)", "streamlit (>=1.50.0,<2.0.0)"]
+dependencies = ["pyinstaller (>=6.16.0,<7.0.0)", "streamlit (>=1.50.0,<2.0.0)", "loguru (>=0.7.3,<0.8.0)"]
 
 [tool.poetry]
-packages = [{ include = "src/gui" , from = "src/gui" }, { include = "src/logic", from = "src/logic" }]
+packages = [{ include = "src/gui",  from = "src/gui" }, { include = "src/logic", from = "src/logic" }]
 
 
 [build-system]

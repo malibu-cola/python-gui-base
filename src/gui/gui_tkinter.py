@@ -1,129 +1,107 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-最小構成のtkinter GUIアプリケーション
+高度なファイル選択・操作の例
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
-import sys
+from tkinter import ttk, filedialog
 import os
 
-class MinimalApp:
+from src.logic.pipeline import process_data 
+
+
+class GUI:
+    """高度なファイル操作を提供するクラス"""
+
+    @staticmethod
+    def select_excel_file():
+        """Excelファイル専用の選択ダイアログ"""
+        file_types = [
+            ("Excelファイル", "*.xlsx *.xls *.xlsm"),
+            ("Excel 2007以降", "*.xlsx *.xlsm"),
+            ("Excel 97-2003", "*.xls"),
+            ("すべてのファイル", "*.*"),
+        ]
+
+        return filedialog.askopenfilename(
+            title="Excelファイルを選択してください",
+            filetypes=file_types,
+            initialdir=os.path.expanduser(
+                "~"
+            ),  # ホームディレクトリから開始
+        )
+
+    @staticmethod
+    def select_folder():
+        """フォルダの選択"""
+        return filedialog.askdirectory(
+            title="フォルダを選択してください", initialdir=os.path.expanduser("~")
+        )
+
+
+
+
+class FileManagerApp:
+    """ファイル管理アプリケーションのデモ"""
+
     def __init__(self, root):
         self.root = root
-        self.setup_window()
-        self.create_widgets()
-    
-    def setup_window(self):
-        """ウィンドウの基本設定"""
-        self.root.title("最小構成アプリ")
-        self.root.geometry("400x300")
-        
-        # ウィンドウを中央に配置
-        self.center_window()
-        
-        # アイコンの設定（ファイルが存在する場合）
-        try:
-            if hasattr(sys, '_MEIPASS'):
-                # PyInstallerでexe化された場合
-                icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
-            else:
-                icon_path = 'icon.ico'
-            
-            if os.path.exists(icon_path):
-                self.root.iconbitmap(icon_path)
-        except Exception:
-            pass  # アイコンがない場合は無視
-    
-    def center_window(self):
-        """ウィンドウを画面中央に配置"""
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
-        self.root.geometry(f'{width}x{height}+{x}+{y}')
-    
-    def create_widgets(self):
-        """ウィジェットの作成"""
+        self.selected_files = []
+        self._setup_window()
+        self._create_widgets()
+
+    def _setup_window(self):
+        self.root.title("高度なファイル選択デモ")
+        self.root.geometry("700x600")
+
+    def _create_widgets(self):
         # メインフレーム
         main_frame = ttk.Frame(self.root, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # ボタンフレーム
+        button_frame = ttk.LabelFrame(main_frame, text="ファイル操作", padding="10")
+        button_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+
+        # 各種ボタン
+        ttk.Button(
+            button_frame, text="Excelファイルを選択", command=self._select_excel
+        ).grid(row=0, column=0, padx=5, pady=5)
+
+        ttk.Button(
+            button_frame, text="フォルダを選択", command=self._select_folder
+        ).grid(row=1, column=0, padx=5, pady=5)
         
-        # グリッドの重み設定
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
-        
-        # タイトルラベル
-        title_label = ttk.Label(
-            main_frame, 
-            text="最小構成GUIアプリ", 
-            font=('Arial', 16, 'bold')
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
-        
-        # 入力フィールド
-        ttk.Label(main_frame, text="名前:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        self.name_entry = ttk.Entry(main_frame, width=30)
-        self.name_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=5)
-        
-        # ボタン
-        hello_button = ttk.Button(
-            main_frame, 
-            text="挨拶", 
-            command=self.show_greeting
-        )
-        hello_button.grid(row=2, column=0, pady=10)
-        
-        exit_button = ttk.Button(
-            main_frame, 
-            text="終了", 
-            command=self.root.quit
-        )
-        exit_button.grid(row=2, column=1, pady=10)
-        
-        # 結果表示エリア
-        self.result_text = tk.Text(main_frame, height=8, width=50)
-        self.result_text.grid(row=3, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
-        
-        # スクロールバー
-        scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.result_text.yview)
-        scrollbar.grid(row=3, column=2, sticky=(tk.N, tk.S), pady=10)
-        self.result_text.config(yscrollcommand=scrollbar.set)
-        
-        # フォーカスを入力フィールドに設定
-        self.name_entry.focus()
-        
-        # Enterキーでの実行
-        self.root.bind('<Return>', lambda event: self.show_greeting())
-    
-    def show_greeting(self):
-        """挨拶を表示"""
-        name = self.name_entry.get().strip()
-        if not name:
-            messagebox.showwarning("警告", "名前を入力してください")
-            return
-        
-        greeting = f"こんにちは、{name}さん！\n"
-        self.result_text.insert(tk.END, greeting)
-        self.result_text.see(tk.END)
-        
-        # 入力フィールドをクリア
-        self.name_entry.delete(0, tk.END)
-        self.name_entry.focus()
+        ttk.Button(
+            button_frame, text="パイプライン1実行", command=self.run_pipeline1
+        ).grid(row=2, column=0, padx=5, pady=5)
+
+
+    def _select_excel(self):
+        """Excelファイル選択"""
+        file_path = GUI.select_excel_file()
+        if file_path:
+            self.selected_files = [file_path]
+            self.display_file_info([file_path], "Excelファイル選択結果")
+
+    def _select_folder(self):
+        """フォルダ選択"""
+        folder_path = GUI.select_folder()
+        if folder_path:
+            self.result_text.insert(tk.END, f"選択されたフォルダ: {folder_path}\n\n")
+            self.result_text.see(tk.END)
+            
+    def run_pipeline1(self):
+        process_data()
+
+
 
 def gui_run():
-    """メイン関数"""
-    try:
-        root = tk.Tk()
-        MinimalApp(root)
-        root.mainloop()
-    except Exception as e:
-        messagebox.showerror("エラー", f"アプリケーションエラーが発生しました:\n{str(e)}")
-        sys.exit(1)
+    root = tk.Tk()
+    FileManagerApp(root)
+    root.mainloop()
+
 
 if __name__ == "__main__":
     gui_run()

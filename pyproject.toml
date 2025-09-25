@@ -1,0 +1,18 @@
+[project]
+name = "streamlit-gui-app"
+version = "0.1.0"
+description = ""
+authors = [{ name = "Your Name", email = "you@example.com" }]
+readme = "README.md"
+dependencies = ["pyinstaller (>=6.16.0,<7.0.0)", "streamlit (>=1.50.0,<2.0.0)"]
+
+[tool.poetry]
+packages = [{ include = "src/gui" , from = "src/gui" }, { include = "src/logic", from = "src/logic" }]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.15" # 元々は ">=3.12" だったはず

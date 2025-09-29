@@ -16,31 +16,31 @@ from src.logic.pipeline import process_data, process_data2
 
 class LogHandler:
     """ログをGUIに転送するためのハンドラー"""
-    
+
     def __init__(self):
         self.log_queue = queue.Queue()
         self.gui_widgets = []  # ログを表示するテキストウィジェットのリスト
         self.is_setup = False
-    
+
     def setup_logger(self):
         """loguruの設定とGUI用シンクの追加"""
         if self.is_setup:
             return
-        
+
         # GUI用のカスタムシンク
         logger.add(
             self._gui_sink,
             level="DEBUG",
             format="{time:HH:mm:ss} | <level>{level: <8}</level> | {message}",
             colorize=False,
-            catch=True
+            catch=True,
         )
-        
+
         # ファイル出力も追加（オプション）
         log_dir = "logs"
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        
+
         logger.add(
             os.path.join(log_dir, "app_{time:YYYY-MM-DD}.log"),
             level="INFO",
@@ -48,35 +48,40 @@ class LogHandler:
             rotation="1 day",
             retention="30 days",
             compression="zip",
-            encoding="utf-8"
+            encoding="utf-8",
         )
-        
+
         self.is_setup = True
         logger.info("ログシステムが初期化されました")
-    
+
     def _gui_sink(self, message):
         """GUI用のログシンク"""
         try:
             # ANSIエスケープシーケンスを削除
             import re
-            clean_message = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', str(message))
-            
+
+            clean_message = re.sub(
+                r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "", str(message)
+            )
+
             # キューに追加（メインスレッドで処理するため）
             self.log_queue.put(clean_message)
         except Exception as e:
             print(f"GUI log sink error: {e}")
-    
+
     def register_widget(self, text_widget, root_widget):
         """ログを表示するテキストウィジェットを登録"""
         self.gui_widgets.append((text_widget, root_widget))
-        
+
         # 定期的にキューをチェックしてログを表示
         self._check_log_queue(text_widget, root_widget)
-    
+
     def unregister_widget(self, text_widget):
         """テキストウィジェットの登録を解除"""
-        self.gui_widgets = [(widget, root) for widget, root in self.gui_widgets if widget != text_widget]
-    
+        self.gui_widgets = [
+            (widget, root) for widget, root in self.gui_widgets if widget != text_widget
+        ]
+
     def _check_log_queue(self, text_widget, root_widget):
         """ログキューをチェックして新しいログを表示"""
         try:
@@ -90,23 +95,25 @@ class LogHandler:
             # ウィジェットが削除されている場合
             self.unregister_widget(text_widget)
             return
-        
+
         # 100ms後に再チェック
         try:
-            root_widget.after(100, lambda: self._check_log_queue(text_widget, root_widget))
+            root_widget.after(
+                100, lambda: self._check_log_queue(text_widget, root_widget)
+            )
         except tk.TclError:
             pass
-    
+
     def _append_log_to_widget(self, text_widget, message):
         """テキストウィジェットにログメッセージを追加"""
         try:
             text_widget.insert(tk.END, message)
             text_widget.see(tk.END)
-            
+
             # 行数制限（パフォーマンス対策）
-            lines = int(text_widget.index('end-1c').split('.')[0])
+            lines = int(text_widget.index("end-1c").split(".")[0])
             if lines > 1000:
-                text_widget.delete('1.0', '500.0')
+                text_widget.delete("1.0", "500.0")
         except tk.TclError:
             # ウィジェットが削除されている場合
             self.unregister_widget(text_widget)
@@ -123,7 +130,7 @@ class Window1:
     def select_excel_file() -> str:
         """Excelファイル専用の選択ダイアログ"""
         logger.debug("Excelファイル選択ダイアログを開いています")
-        
+
         file_path = filedialog.askopenfilename(
             title="Excelファイルを選択してください",
             filetypes=[
@@ -132,29 +139,29 @@ class Window1:
             ],
             initialdir=os.path.expanduser("~"),
         )
-        
+
         if file_path:
             logger.info(f"Excelファイルが選択されました: {os.path.basename(file_path)}")
         else:
             logger.info("Excelファイル選択がキャンセルされました")
-        
+
         return file_path
 
     @staticmethod
     def select_folder() -> str:
         """フォルダの選択"""
         logger.debug("フォルダ選択ダイアログを開いています")
-        
+
         folder_path = filedialog.askdirectory(
             title="フォルダを選択してください",
             initialdir=os.path.expanduser("~"),
         )
-        
+
         if folder_path:
             logger.info(f"フォルダが選択されました: {folder_path}")
         else:
             logger.info("フォルダ選択がキャンセルされました")
-        
+
         return folder_path
 
 
@@ -167,7 +174,7 @@ class Window2:
         self.selected_files = []
         self._setup_window()
         self._create_widgets()
-        
+
         logger.info("パイプライン2ウィンドウが開かれました")
 
     def _setup_window(self):
@@ -206,7 +213,7 @@ class Window2:
         """ウィジェットの作成"""
         # メインフレーム
         main_frame = ttk.Frame(self.window, padding="20")
-        main_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        main_frame.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
 
         # グリッド設定
         self.window.columnconfigure(0, weight=1)
@@ -222,7 +229,7 @@ class Window2:
 
         # ファイル選択セクション
         file_frame = ttk.LabelFrame(main_frame, text="ファイル選択", padding="10")
-        file_frame.grid(row=1, column=0, sticky=tk.W+tk.E, pady=(0, 20))
+        file_frame.grid(row=1, column=0, sticky=tk.W + tk.E, pady=(0, 20))
         file_frame.columnconfigure(1, weight=1)
 
         # ファイル選択ボタン
@@ -235,32 +242,36 @@ class Window2:
         config_label = ttk.Label(
             file_frame, textvariable=self.config_file_var, foreground="gray"
         )
-        config_label.grid(row=0, column=1, sticky=tk.W+tk.E, pady=5)
+        config_label.grid(row=0, column=1, sticky=tk.W + tk.E, pady=5)
 
         # 実行ログ表示エリア
         log_frame = ttk.LabelFrame(main_frame, text="実行ログ", padding="5")
         log_frame.grid(
-            row=2, column=0, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S, pady=(10, 0)
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky=tk.W + tk.E + tk.N + tk.S,
+            pady=(10, 0),
         )
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
 
         # テキストエリア
         text_frame = ttk.Frame(log_frame)
-        text_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        text_frame.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
         text_frame.columnconfigure(0, weight=1)
         text_frame.rowconfigure(0, weight=1)
 
         self.log_text = tk.Text(
             text_frame, height=10, wrap=tk.WORD, font=("Consolas", 9)
         )
-        self.log_text.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.log_text.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
 
         # スクロールバー
         scrollbar = ttk.Scrollbar(
             text_frame, orient=tk.VERTICAL, command=self.log_text.yview
         )
-        scrollbar.grid(row=0, column=1, sticky=tk.N+tk.S)
+        scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
         self.log_text.config(yscrollcommand=scrollbar.set)
 
         # ログハンドラーにウィジェットを登録
@@ -268,7 +279,7 @@ class Window2:
 
         # ボタンフレーム
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=3, column=0, sticky=tk.W+tk.E, pady=(10, 0))
+        button_frame.grid(row=3, column=0, sticky=tk.W + tk.E, pady=(10, 0))
 
         # ボタンを右寄せにするためのフレーム
         right_frame = ttk.Frame(button_frame)
@@ -319,7 +330,7 @@ class Window2:
         logger.info("=" * 50)
         logger.info("パイプライン2の実行を開始します...")
         logger.info(f"入力ファイル: {self.config_file_path}")
-        
+
         try:
             # 別スレッドでパイプラインを実行（GUIがブロックされないように）
             def run_pipeline():
@@ -327,20 +338,34 @@ class Window2:
                     process_data2()
                     logger.success("パイプライン2の実行が完了しました！")
                     logger.info("=" * 50)
-                    
+
                     # メインスレッドで成功メッセージを表示
-                    self.window.after(0, lambda: messagebox.showinfo("完了", "パイプライン2の実行が完了しました"))
+                    self.window.after(
+                        0,
+                        lambda: messagebox.showinfo(
+                            "完了", "パイプライン2の実行が完了しました"
+                        ),
+                    )
                 except Exception as e:
-                    logger.error(f"パイプライン2の実行中にエラーが発生しました: {str(e)}")
+                    logger.error(
+                        f"パイプライン2の実行中にエラーが発生しました: {str(e)}"
+                    )
                     # メインスレッドでエラーメッセージを表示
-                    self.window.after(0, lambda e=e: messagebox.showerror("エラー", f"パイプライン2の実行に失敗しました:\n{str(e)}"))
-            
+                    self.window.after(
+                        0,
+                        lambda e=e: messagebox.showerror(
+                            "エラー", f"パイプライン2の実行に失敗しました:\n{str(e)}"
+                        ),
+                    )
+
             # 別スレッドで実行
             threading.Thread(target=run_pipeline, daemon=True).start()
-            
+
         except Exception as e:
             logger.error(f"パイプライン2の起動中にエラーが発生しました: {str(e)}")
-            messagebox.showerror("エラー", f"パイプライン2の起動に失敗しました:\n{str(e)}")
+            messagebox.showerror(
+                "エラー", f"パイプライン2の起動に失敗しました:\n{str(e)}"
+            )
 
     def _clear_log(self):
         """ログ表示エリアをクリア"""
@@ -363,7 +388,7 @@ class FileManagerApp:
         self.pipeline2_window = None
         self._setup_window()
         self._create_widgets()
-        
+
         logger.info("メインアプリケーションが起動されました")
 
     def _setup_window(self):
@@ -373,7 +398,7 @@ class FileManagerApp:
     def _create_widgets(self):
         # メインフレーム
         main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        main_frame.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
 
         # グリッド設定
         self.root.columnconfigure(0, weight=1)
@@ -383,7 +408,7 @@ class FileManagerApp:
 
         # ボタンフレーム
         button_frame = ttk.LabelFrame(main_frame, text="ファイル操作", padding="10")
-        button_frame.grid(row=0, column=0, sticky=tk.W+tk.E, pady=(0, 10))
+        button_frame.grid(row=0, column=0, sticky=tk.W + tk.E, pady=(0, 10))
 
         # 既存のボタン（左側に配置）
         left_buttons_frame = ttk.Frame(button_frame)
@@ -415,25 +440,27 @@ class FileManagerApp:
         # 結果表示エリア
         result_frame = ttk.LabelFrame(main_frame, text="ログ・結果表示", padding="10")
         result_frame.grid(
-            row=1, column=0, sticky=tk.W+tk.E+tk.N+tk.S, pady=(10, 0)
+            row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, pady=(10, 0)
         )
         result_frame.columnconfigure(0, weight=1)
         result_frame.rowconfigure(0, weight=1)
 
         # テキストエリア
         text_frame = ttk.Frame(result_frame)
-        text_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        text_frame.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
         text_frame.columnconfigure(0, weight=1)
         text_frame.rowconfigure(0, weight=1)
 
-        self.result_text = tk.Text(text_frame, height=25, wrap=tk.WORD, font=("Consolas", 9))
-        self.result_text.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.result_text = tk.Text(
+            text_frame, height=25, wrap=tk.WORD, font=("Consolas", 9)
+        )
+        self.result_text.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
 
         # スクロールバー
         scrollbar = ttk.Scrollbar(
             text_frame, orient=tk.VERTICAL, command=self.result_text.yview
         )
-        scrollbar.grid(row=0, column=1, sticky=tk.N+tk.S)
+        scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
         self.result_text.config(yscrollcommand=scrollbar.set)
 
         # ログハンドラーにメインウィンドウのテキストエリアも登録
@@ -442,11 +469,9 @@ class FileManagerApp:
         # ログクリアボタンを追加
         clear_button_frame = ttk.Frame(result_frame)
         clear_button_frame.grid(row=1, column=0, sticky=tk.E, pady=(5, 0))
-        
+
         ttk.Button(
-            clear_button_frame,
-            text="ログクリア",
-            command=self._clear_log
+            clear_button_frame, text="ログクリア", command=self._clear_log
         ).pack()
 
     def _select_excel(self):
@@ -466,27 +491,41 @@ class FileManagerApp:
     def _run_pipeline1(self):
         """パイプライン1を実行"""
         logger.info("パイプライン1の実行を開始します...")
-        
+
         try:
             # 別スレッドでパイプラインを実行（GUIがブロックされないように）
             def run_pipeline():
                 try:
                     process_data()  # 実際のパイプライン実行
                     logger.success("パイプライン1の実行が完了しました")
-                    
+
                     # メインスレッドで成功メッセージを表示
-                    self.root.after(0, lambda: messagebox.showinfo("完了", "パイプライン1の実行が完了しました"))
+                    self.root.after(
+                        0,
+                        lambda: messagebox.showinfo(
+                            "完了", "パイプライン1の実行が完了しました"
+                        ),
+                    )
                 except Exception as e:
-                    logger.error(f"パイプライン1の実行中にエラーが発生しました: {str(e)}")
+                    logger.error(
+                        f"パイプライン1の実行中にエラーが発生しました: {str(e)}"
+                    )
                     # メインスレッドでエラーメッセージを表示
-                    self.root.after(0, lambda e=e: messagebox.showerror("エラー", f"パイプライン1の実行に失敗しました:\n{str(e)}"))
-            
+                    self.root.after(
+                        0,
+                        lambda e=e: messagebox.showerror(
+                            "エラー", f"パイプライン1の実行に失敗しました:\n{str(e)}"
+                        ),
+                    )
+
             # 別スレッドで実行
             threading.Thread(target=run_pipeline, daemon=True).start()
 
         except Exception as e:
             logger.error(f"パイプライン1の起動中にエラーが発生しました: {str(e)}")
-            messagebox.showerror("エラー", f"パイプライン1の起動に失敗しました:\n{str(e)}")
+            messagebox.showerror(
+                "エラー", f"パイプライン1の起動に失敗しました:\n{str(e)}"
+            )
 
     def _open_pipeline2_window(self):
         """パイプライン2のウィンドウを開く"""
@@ -514,16 +553,16 @@ def gui_run():
     """GUIアプリケーションを起動"""
     # ログハンドラーを初期化
     log_handler.setup_logger()
-    
+
     root = tk.Tk()
     FileManagerApp(root)
-    
+
     # アプリケーション終了時の処理
     def on_closing():
         logger.info("アプリケーションを終了します")
         root.quit()
         root.destroy()
-    
+
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
 

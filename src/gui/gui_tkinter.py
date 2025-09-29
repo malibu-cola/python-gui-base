@@ -410,7 +410,7 @@ class FileManagerApp:
         left_frame = ttk.Frame(main_frame)
         left_frame.grid(row=0, column=0, sticky=tk.N + tk.W, padx=(0, 10))
 
-        # ファイル操作ボタン
+        # ファイル・モデル選択フレーム
         button_frame = ttk.LabelFrame(
             left_frame, text="ファイル・モデル選択", padding="10"
         )
@@ -440,15 +440,11 @@ class FileManagerApp:
         )
         self.model_combo.pack(fill=tk.X)
 
-        # デフォルト値を設定（オプション）
+        # デフォルト値を設定
         self.model_combo.set("gpt-5")
 
-        # 選択時のイベント（オプション）
+        # 選択時のイベント
         self.model_combo.bind("<<ComboboxSelected>>", self._on_model_selected)
-
-        ttk.Button(
-            button_frame, text="パイプライン1実行", command=self._run_pipeline1
-        ).pack(fill=tk.X, pady=5)
 
         # 右側: ログ・結果表示エリア
         result_frame = ttk.LabelFrame(main_frame, text="ログ・結果表示", padding="10")
@@ -485,7 +481,18 @@ class FileManagerApp:
             clear_button_frame, text="ログクリア", command=self._clear_log
         ).pack()
 
-        # パイプライン2ボタン（ログ・結果表示の外、右下に配置）
+        # 下部ボタンエリア（パイプライン1とパイプライン2）
+        # パイプライン1ボタン（左下）
+        pipeline1_button_frame = ttk.Frame(main_frame)
+        pipeline1_button_frame.grid(row=1, column=0, sticky=tk.W, pady=(10, 0))
+
+        ttk.Button(
+            pipeline1_button_frame,
+            text="パイプライン1実行",
+            command=self._run_pipeline1,
+        ).pack()
+
+        # パイプライン2ボタン（右下）
         pipeline2_button_frame = ttk.Frame(main_frame)
         pipeline2_button_frame.grid(row=1, column=1, sticky=tk.E, pady=(10, 0))
 

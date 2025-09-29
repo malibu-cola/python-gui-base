@@ -206,7 +206,7 @@ class Window2:
         """ウィジェットの作成"""
         # メインフレーム
         main_frame = ttk.Frame(self.window, padding="20")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
 
         # グリッド設定
         self.window.columnconfigure(0, weight=1)
@@ -222,7 +222,7 @@ class Window2:
 
         # ファイル選択セクション
         file_frame = ttk.LabelFrame(main_frame, text="ファイル選択", padding="10")
-        file_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        file_frame.grid(row=1, column=0, sticky=tk.W+tk.E, pady=(0, 20))
         file_frame.columnconfigure(1, weight=1)
 
         # ファイル選択ボタン
@@ -235,32 +235,32 @@ class Window2:
         config_label = ttk.Label(
             file_frame, textvariable=self.config_file_var, foreground="gray"
         )
-        config_label.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=5)
+        config_label.grid(row=0, column=1, sticky=tk.W+tk.E, pady=5)
 
         # 実行ログ表示エリア
         log_frame = ttk.LabelFrame(main_frame, text="実行ログ", padding="5")
         log_frame.grid(
-            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0)
+            row=2, column=0, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S, pady=(10, 0)
         )
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
 
         # テキストエリア
         text_frame = ttk.Frame(log_frame)
-        text_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        text_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
         text_frame.columnconfigure(0, weight=1)
         text_frame.rowconfigure(0, weight=1)
 
         self.log_text = tk.Text(
             text_frame, height=10, wrap=tk.WORD, font=("Consolas", 9)
         )
-        self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.log_text.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
 
         # スクロールバー
         scrollbar = ttk.Scrollbar(
             text_frame, orient=tk.VERTICAL, command=self.log_text.yview
         )
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=tk.N+tk.S)
         self.log_text.config(yscrollcommand=scrollbar.set)
 
         # ログハンドラーにウィジェットを登録
@@ -268,7 +268,7 @@ class Window2:
 
         # ボタンフレーム
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
+        button_frame.grid(row=3, column=0, sticky=tk.W+tk.E, pady=(10, 0))
 
         # ボタンを右寄せにするためのフレーム
         right_frame = ttk.Frame(button_frame)
@@ -333,7 +333,7 @@ class Window2:
                 except Exception as e:
                     logger.error(f"パイプライン2の実行中にエラーが発生しました: {str(e)}")
                     # メインスレッドでエラーメッセージを表示
-                    self.window.after(0, lambda: messagebox.showerror("エラー", f"パイプライン2の実行に失敗しました:\n{str(e)}"))
+                    self.window.after(0, lambda e=e: messagebox.showerror("エラー", f"パイプライン2の実行に失敗しました:\n{str(e)}"))
             
             # 別スレッドで実行
             threading.Thread(target=run_pipeline, daemon=True).start()
@@ -373,7 +373,7 @@ class FileManagerApp:
     def _create_widgets(self):
         # メインフレーム
         main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
 
         # グリッド設定
         self.root.columnconfigure(0, weight=1)
@@ -383,7 +383,7 @@ class FileManagerApp:
 
         # ボタンフレーム
         button_frame = ttk.LabelFrame(main_frame, text="ファイル操作", padding="10")
-        button_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        button_frame.grid(row=0, column=0, sticky=tk.W+tk.E, pady=(0, 10))
 
         # 既存のボタン（左側に配置）
         left_buttons_frame = ttk.Frame(button_frame)
@@ -415,25 +415,25 @@ class FileManagerApp:
         # 結果表示エリア
         result_frame = ttk.LabelFrame(main_frame, text="ログ・結果表示", padding="10")
         result_frame.grid(
-            row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0)
+            row=1, column=0, sticky=tk.W+tk.E+tk.N+tk.S, pady=(10, 0)
         )
         result_frame.columnconfigure(0, weight=1)
         result_frame.rowconfigure(0, weight=1)
 
         # テキストエリア
         text_frame = ttk.Frame(result_frame)
-        text_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        text_frame.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
         text_frame.columnconfigure(0, weight=1)
         text_frame.rowconfigure(0, weight=1)
 
         self.result_text = tk.Text(text_frame, height=25, wrap=tk.WORD, font=("Consolas", 9))
-        self.result_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.result_text.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
 
         # スクロールバー
         scrollbar = ttk.Scrollbar(
             text_frame, orient=tk.VERTICAL, command=self.result_text.yview
         )
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=tk.N+tk.S)
         self.result_text.config(yscrollcommand=scrollbar.set)
 
         # ログハンドラーにメインウィンドウのテキストエリアも登録
@@ -479,7 +479,7 @@ class FileManagerApp:
                 except Exception as e:
                     logger.error(f"パイプライン1の実行中にエラーが発生しました: {str(e)}")
                     # メインスレッドでエラーメッセージを表示
-                    self.root.after(0, lambda: messagebox.showerror("エラー", f"パイプライン1の実行に失敗しました:\n{str(e)}"))
+                    self.root.after(0, lambda e=e: messagebox.showerror("エラー", f"パイプライン1の実行に失敗しました:\n{str(e)}"))
             
             # 別スレッドで実行
             threading.Thread(target=run_pipeline, daemon=True).start()

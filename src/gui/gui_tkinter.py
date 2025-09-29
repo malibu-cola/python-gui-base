@@ -403,45 +403,32 @@ class FileManagerApp:
         # グリッド設定
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(1, weight=1)
+        main_frame.columnconfigure(1, weight=1)  # 右側（ログエリア）を拡張可能に
+        main_frame.rowconfigure(0, weight=1)
 
-        # ボタンフレーム
-        button_frame = ttk.LabelFrame(main_frame, text="ファイル操作", padding="10")
-        button_frame.grid(row=0, column=0, sticky=tk.W + tk.E, pady=(0, 10))
+        # 左側: ボタンエリア
+        left_frame = ttk.Frame(main_frame)
+        left_frame.grid(row=0, column=0, sticky=tk.N + tk.W, padx=(0, 10))
 
-        # 既存のボタン（左側に配置）
-        left_buttons_frame = ttk.Frame(button_frame)
-        left_buttons_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        ttk.Button(
-            left_buttons_frame, text="Excelファイルを選択", command=self._select_excel
-        ).grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        # ファイル操作ボタン
+        button_frame = ttk.LabelFrame(left_frame, text="ファイル操作", padding="10")
+        button_frame.pack(fill=tk.X, pady=(0, 10))
 
         ttk.Button(
-            left_buttons_frame, text="フォルダを選択", command=self._select_folder
-        ).grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+            button_frame, text="Excelファイルを選択", command=self._select_excel
+        ).pack(fill=tk.X, pady=5)
 
         ttk.Button(
-            left_buttons_frame, text="パイプライン1実行", command=self._run_pipeline1
-        ).grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-
-        # 右下にパイプライン2ボタンを配置
-        right_buttons_frame = ttk.Frame(button_frame)
-        right_buttons_frame.pack(side=tk.RIGHT, anchor=tk.SE)
+            button_frame, text="フォルダを選択", command=self._select_folder
+        ).pack(fill=tk.X, pady=5)
 
         ttk.Button(
-            right_buttons_frame,
-            text="パイプライン2を起動",
-            command=self._open_pipeline2_window,
-            style="Accent.TButton",  # 強調スタイル
-        ).pack(pady=5)
+            button_frame, text="パイプライン1実行", command=self._run_pipeline1
+        ).pack(fill=tk.X, pady=5)
 
-        # 結果表示エリア
+        # 右側: ログ・結果表示エリア
         result_frame = ttk.LabelFrame(main_frame, text="ログ・結果表示", padding="10")
-        result_frame.grid(
-            row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, pady=(10, 0)
-        )
+        result_frame.grid(row=0, column=1, sticky=tk.W + tk.E + tk.N + tk.S)
         result_frame.columnconfigure(0, weight=1)
         result_frame.rowconfigure(0, weight=1)
 
@@ -466,12 +453,23 @@ class FileManagerApp:
         # ログハンドラーにメインウィンドウのテキストエリアも登録
         log_handler.register_widget(self.result_text, self.root)
 
-        # ログクリアボタンを追加
+        # ログクリアボタン
         clear_button_frame = ttk.Frame(result_frame)
         clear_button_frame.grid(row=1, column=0, sticky=tk.E, pady=(5, 0))
 
         ttk.Button(
             clear_button_frame, text="ログクリア", command=self._clear_log
+        ).pack()
+
+        # パイプライン2ボタン（ログ・結果表示の外、右下に配置）
+        pipeline2_button_frame = ttk.Frame(main_frame)
+        pipeline2_button_frame.grid(row=1, column=1, sticky=tk.E, pady=(10, 0))
+
+        ttk.Button(
+            pipeline2_button_frame,
+            text="パイプライン2を起動",
+            command=self._open_pipeline2_window,
+            style="Accent.TButton",
         ).pack()
 
     def _select_excel(self):

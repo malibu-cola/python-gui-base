@@ -411,7 +411,9 @@ class FileManagerApp:
         left_frame.grid(row=0, column=0, sticky=tk.N + tk.W, padx=(0, 10))
 
         # ファイル操作ボタン
-        button_frame = ttk.LabelFrame(left_frame, text="ファイル操作", padding="10")
+        button_frame = ttk.LabelFrame(
+            left_frame, text="ファイル・モデル選択", padding="10"
+        )
         button_frame.pack(fill=tk.X, pady=(0, 10))
 
         ttk.Button(
@@ -421,6 +423,28 @@ class FileManagerApp:
         ttk.Button(
             button_frame, text="フォルダを選択", command=self._select_folder
         ).pack(fill=tk.X, pady=5)
+
+        # モデル選択セクション
+        model_frame = ttk.Frame(button_frame)
+        model_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Label(model_frame, text="モデルを選択:").pack(anchor=tk.W, pady=(0, 5))
+
+        self.model_var = tk.StringVar()
+        self.model_combo = ttk.Combobox(
+            model_frame,
+            textvariable=self.model_var,
+            values=["gpt-5", "o4-mini"],
+            state="readonly",
+            width=18,
+        )
+        self.model_combo.pack(fill=tk.X)
+
+        # デフォルト値を設定（オプション）
+        self.model_combo.set("gpt-5")
+
+        # 選択時のイベント（オプション）
+        self.model_combo.bind("<<ComboboxSelected>>", self._on_model_selected)
 
         ttk.Button(
             button_frame, text="パイプライン1実行", command=self._run_pipeline1
@@ -486,18 +510,31 @@ class FileManagerApp:
             self.result_text.insert(tk.END, f"選択されたフォルダ: {folder_path}\n\n")
             self.result_text.see(tk.END)
 
+    def _on_model_selected(self, event=None):
+        """モデルが選択されたときの処理"""
+        selected_model = self.model_var.get()
+        logger.info(f"モデルが選択されました: {selected_model}")
+
+    # 例: パイプライン1実行時に選択されたモデルを使用
     def _run_pipeline1(self):
         """パイプライン1を実行"""
-        logger.info("パイプライン1の実行を開始します...")
+        selected_model = self.model_var.get()
 
+        if not selected_model:
+            logger.warning("モデルが選択されていません")
+            messagebox.showwarning("警告", "モデルを選択してください")
+            return
+
+        logger.info(f"パイプライン1の実行を開始します... (モデル: {selected_model})")
+
+        # 以下、既存の処理
         try:
-            # 別スレッドでパイプラインを実行（GUIがブロックされないように）
+
             def run_pipeline():
                 try:
-                    process_data()  # 実際のパイプライン実行
+                    process_data()  # selected_modelを引数として渡すことも可能
                     logger.success("パイプライン1の実行が完了しました")
 
-                    # メインスレッドで成功メッセージを表示
                     self.root.after(
                         0,
                         lambda: messagebox.showinfo(
@@ -508,7 +545,6 @@ class FileManagerApp:
                     logger.error(
                         f"パイプライン1の実行中にエラーが発生しました: {str(e)}"
                     )
-                    # メインスレッドでエラーメッセージを表示
                     self.root.after(
                         0,
                         lambda e=e: messagebox.showerror(
@@ -516,7 +552,6 @@ class FileManagerApp:
                         ),
                     )
 
-            # 別スレッドで実行
             threading.Thread(target=run_pipeline, daemon=True).start()
 
         except Exception as e:

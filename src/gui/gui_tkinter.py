@@ -310,6 +310,7 @@ class Window2:
         file_path = filedialog.askopenfilename(
             title="ファイルを選択してください",
             initialdir=os.path.expanduser("~"),
+            parent=self.window,  # 親ウィンドウを指定
         )
 
         if file_path:
@@ -318,6 +319,10 @@ class Window2:
             logger.info(f"入力ファイルが選択されました: {os.path.basename(file_path)}")
         else:
             logger.info("入力ファイルの選択がキャンセルされました")
+        
+        # ファイルダイアログ後にWindow2にフォーカスを戻す
+        self.window.lift()
+        self.window.focus_force()
 
     def _run_pipeline2(self):
         """パイプライン2を実行"""

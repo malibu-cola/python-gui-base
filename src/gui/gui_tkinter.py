@@ -17,38 +17,42 @@ from src.logic.pipeline import process_data, process_data2
 class LogHandler:
     """ログをGUIに転送するためのハンドラー"""
 
-    def __init__(self):
+    def __init__(self, window_id="main"):
+        self.window_id = window_id
         self.log_queue = queue.Queue()
         self.gui_widgets = []  # ログを表示するテキストウィジェットのリスト
         self.is_setup = False
+        self.logger_id = None
 
     def setup_logger(self):
         """loguruの設定とGUI用シンクの追加"""
         if self.is_setup:
             return
 
-        # GUI用のカスタムシンク
-        logger.add(
+        # GUI用のカスタムシンク（ウィンドウIDごとに異なるシンクを追加）
+        self.logger_id = logger.add(
             self._gui_sink,
             level="DEBUG",
             format="{time:HH:mm:ss} | <level>{level: <8}</level> | {message}",
             colorize=False,
             catch=True,
+            filter=lambda record: record.get("extra", {}).get("window_id", "main") == self.window_id
         )
 
-        # ファイル出力も追加（オプション）
+        # ファイル出力も追加（ウィンドウIDごとに異なるファイルに出力）
         log_dir = "logs"
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
         logger.add(
-            os.path.join(log_dir, "app_{time:YYYY-MM-DD}.log"),
+            os.path.join(log_dir, f"app_{self.window_id}_{{time:YYYY-MM-DD}}.log"),
             level="INFO",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
             rotation="1 day",
             retention="30 days",
             compression="zip",
             encoding="utf-8",
+            filter=lambda record: record.get("extra", {}).get("window_id", "main") == self.window_id
         )
 
         self.is_setup = True
@@ -119,8 +123,11 @@ class LogHandler:
             self.unregister_widget(text_widget)
 
 
-# グローバルなログハンドラーインスタンス
-log_handler = LogHandler()
+# メインウィンドウ用のログハンドラー
+log_handler = LogHandler(window_id="main")
+
+# Window2用のログハンドラー
+log_handler_window2 = LogHandler(window_id="window2")
 
 
 class Window1:
@@ -129,7 +136,9 @@ class Window1:
     @staticmethod
     def select_excel_file() -> str:
         """Excelファイル専用の選択ダイアログ"""
-        logger.debug("Excelファイル選択ダイアログを開いています")
+        # メインウィンドウ用のロガーを使用
+        main_logger = logger.bind(window_id="main")
+        main_logger.debug("Excelファイル選択ダイアログを開いています")
 
         file_path = filedialog.askopenfilename(
             title="Excelファイルを選択してください",
@@ -141,16 +150,18 @@ class Window1:
         )
 
         if file_path:
-            logger.info(f"Excelファイルが選択されました: {os.path.basename(file_path)}")
+            main_logger.info(f"Excelファイルが選択されました: {os.path.basename(file_path)}")
         else:
-            logger.info("Excelファイル選択がキャンセルされました")
+            main_logger.info("Excelファイル選択がキャンセルされました")
 
         return file_path
 
     @staticmethod
     def select_folder() -> str:
         """フォルダの選択"""
-        logger.debug("フォルダ選択ダイアログを開いています")
+        # メインウィンドウ用のロガーを使用
+        main_logger = logger.bind(window_id="main")
+        main_logger.debug("フォルダ選択ダイアログを開いています")
 
         folder_path = filedialog.askdirectory(
             title="フォルダを選択してください",
@@ -158,9 +169,9 @@ class Window1:
         )
 
         if folder_path:
-            logger.info(f"フォルダが選択されました: {folder_path}")
+            main_logger.info(f"フォルダが選択されました: {folder_path}")
         else:
-            logger.info("フォルダ選択がキャンセルされました")
+            main_logger.info("フォルダ選択がキャンセルされました")
 
         return folder_path
 
@@ -175,7 +186,9 @@ class Window2:
         self._setup_window()
         self._create_widgets()
 
-        logger.info("パイプライン2ウィンドウが開かれました")
+        # Window2専用のロガーバインディングを作成
+        self.logger = logger.bind(window_id="window2")
+        self.logger.info("パイプライン2ウィンドウが開かれました")
 
     def _setup_window(self):
         """ウィンドウの設定"""
@@ -274,8 +287,8 @@ class Window2:
         scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
         self.log_text.config(yscrollcommand=scrollbar.set)
 
-        # ログハンドラーにウィジェットを登録
-        log_handler.register_widget(self.log_text, self.window)
+        # Window2専用のログハンドラーにウィジェットを登録
+        log_handler_window2.register_widget(self.log_text, self.window)
 
         # ボタンフレーム
         button_frame = ttk.Frame(main_frame)
@@ -316,9 +329,9 @@ class Window2:
         if file_path:
             self.config_file_var.set(file_path)
             self.config_file_path = file_path
-            logger.info(f"入力ファイルが選択されました: {os.path.basename(file_path)}")
+            self.logger.info(f"入力ファイルが選択されました: {os.path.basename(file_path)}")
         else:
-            logger.info("入力ファイルの選択がキャンセルされました")
+            self.logger.info("入力ファイルの選択がキャンセルされました")
         
         # ファイルダイアログ後にWindow2にフォーカスを戻す
         self.window.lift()
@@ -328,21 +341,21 @@ class Window2:
         """パイプライン2を実行"""
         # 実行前チェック
         if not hasattr(self, "config_file_path"):
-            logger.warning("入力ファイルが選択されていません")
+            self.logger.warning("入力ファイルが選択されていません")
             messagebox.showwarning("警告", "入力ファイルを選択してください")
             return
 
-        logger.info("=" * 50)
-        logger.info("パイプライン2の実行を開始します...")
-        logger.info(f"入力ファイル: {self.config_file_path}")
+        self.logger.info("=" * 50)
+        self.logger.info("パイプライン2の実行を開始します...")
+        self.logger.info(f"入力ファイル: {self.config_file_path}")
 
         try:
             # 別スレッドでパイプラインを実行（GUIがブロックされないように）
             def run_pipeline():
                 try:
-                    process_data2()
-                    logger.success("パイプライン2の実行が完了しました！")
-                    logger.info("=" * 50)
+                    process_data2(window_id="window2")  # Window2用のwindow_idを指定
+                    self.logger.success("パイプライン2の実行が完了しました！")
+                    self.logger.info("=" * 50)
 
                     # メインスレッドで成功メッセージを表示
                     self.window.after(
@@ -352,7 +365,7 @@ class Window2:
                         ),
                     )
                 except Exception as e:
-                    logger.error(
+                    self.logger.error(
                         f"パイプライン2の実行中にエラーが発生しました: {str(e)}"
                     )
                     # メインスレッドでエラーメッセージを表示
@@ -367,7 +380,7 @@ class Window2:
             threading.Thread(target=run_pipeline, daemon=True).start()
 
         except Exception as e:
-            logger.error(f"パイプライン2の起動中にエラーが発生しました: {str(e)}")
+            self.logger.error(f"パイプライン2の起動中にエラーが発生しました: {str(e)}")
             messagebox.showerror(
                 "エラー", f"パイプライン2の起動に失敗しました:\n{str(e)}"
             )
@@ -375,12 +388,12 @@ class Window2:
     def _clear_log(self):
         """ログ表示エリアをクリア"""
         self.log_text.delete(1.0, tk.END)
-        logger.info("ログ表示がクリアされました")
+        self.logger.info("ログ表示がクリアされました")
 
     def _on_closing(self):
         """ウィンドウを閉じる時の処理"""
-        logger.info("パイプライン2ウィンドウが閉じられました")
-        log_handler.unregister_widget(self.log_text)
+        self.logger.info("パイプライン2ウィンドウが閉じられました")
+        log_handler_window2.unregister_widget(self.log_text)
         self.window.destroy()
 
 
@@ -394,7 +407,9 @@ class FileManagerApp:
         self._setup_window()
         self._create_widgets()
 
-        logger.info("メインアプリケーションが起動されました")
+        # メインウィンドウ用のロガーバインディングを作成
+        self.logger = logger.bind(window_id="main")
+        self.logger.info("メインアプリケーションが起動されました")
 
     def _setup_window(self):
         self.root.title("HOGE v.0.1")
@@ -525,7 +540,7 @@ class FileManagerApp:
     def _on_model_selected(self, event=None):
         """モデルが選択されたときの処理"""
         selected_model = self.model_var.get()
-        logger.info(f"モデルが選択されました: {selected_model}")
+        self.logger.info(f"モデルが選択されました: {selected_model}")
 
     # 例: パイプライン1実行時に選択されたモデルを使用
     def _run_pipeline1(self):
@@ -533,19 +548,19 @@ class FileManagerApp:
         selected_model = self.model_var.get()
 
         if not selected_model:
-            logger.warning("モデルが選択されていません")
+            self.logger.warning("モデルが選択されていません")
             messagebox.showwarning("警告", "モデルを選択してください")
             return
 
-        logger.info(f"パイプライン1の実行を開始します... (モデル: {selected_model})")
+        self.logger.info(f"パイプライン1の実行を開始します... (モデル: {selected_model})")
 
         # 以下、既存の処理
         try:
 
             def run_pipeline():
                 try:
-                    process_data()  # selected_modelを引数として渡すことも可能
-                    logger.success("パイプライン1の実行が完了しました")
+                    process_data(window_id="main")  # Window1用のwindow_idを指定
+                    self.logger.success("パイプライン1の実行が完了しました")
 
                     self.root.after(
                         0,
@@ -554,7 +569,7 @@ class FileManagerApp:
                         ),
                     )
                 except Exception as e:
-                    logger.error(
+                    self.logger.error(
                         f"パイプライン1の実行中にエラーが発生しました: {str(e)}"
                     )
                     self.root.after(
@@ -567,7 +582,7 @@ class FileManagerApp:
             threading.Thread(target=run_pipeline, daemon=True).start()
 
         except Exception as e:
-            logger.error(f"パイプライン1の起動中にエラーが発生しました: {str(e)}")
+            self.logger.error(f"パイプライン1の起動中にエラーが発生しました: {str(e)}")
             messagebox.showerror(
                 "エラー", f"パイプライン1の起動に失敗しました:\n{str(e)}"
             )
@@ -579,7 +594,7 @@ class FileManagerApp:
             try:
                 self.pipeline2_window.window.lift()
                 self.pipeline2_window.window.focus_force()
-                logger.info("既存のパイプライン2ウィンドウにフォーカスしました")
+                self.logger.info("既存のパイプライン2ウィンドウにフォーカスしました")
                 return
             except tk.TclError:
                 # ウィンドウが既に閉じられている場合
@@ -591,20 +606,22 @@ class FileManagerApp:
     def _clear_log(self):
         """ログ表示エリアをクリア"""
         self.result_text.delete(1.0, tk.END)
-        logger.info("メインウィンドウのログ表示がクリアされました")
+        self.logger.info("メインウィンドウのログ表示がクリアされました")
 
 
 def gui_run():
     """GUIアプリケーションを起動"""
-    # ログハンドラーを初期化
+    # 両方のログハンドラーを初期化
     log_handler.setup_logger()
+    log_handler_window2.setup_logger()
 
     root = tk.Tk()
     FileManagerApp(root)
 
     # アプリケーション終了時の処理
     def on_closing():
-        logger.info("アプリケーションを終了します")
+        # メインウィンドウ用のロガーを使用
+        logger.bind(window_id="main").info("アプリケーションを終了します")
         root.quit()
         root.destroy()
 
